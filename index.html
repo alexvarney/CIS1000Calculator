@@ -17,12 +17,14 @@
         }
         
         .display {
-            width: 98%;
+            width: 100%;
             height: 40px;
             font-size: 30px;
             text-align: right;
             margin-bottom: 15px;
-            padding-right: 5px;
+
+            padding-top:10px;
+            padding-bottom:10px;
         }
         
         table {
@@ -40,17 +42,15 @@
             width: 100%;
             height: 40px;
             font-size: 20px;
-            color: #222;
         }
         
         .equation_current {
             color: #fff;
             min-width: 50px;
+            display: block;
+            margin-right: 10px;
         }
-        
-        .equation_prev {
-            color: darkgray;
-        }
+
         /* additional styles */
         .button {
             box-shadow: none;
@@ -58,24 +58,22 @@
             padding: 10px 20px;
             color: #fff;
             background: #3b3b3b;
-            margin: 2px;
+            margin: 1px;
             border: none;
-
+            border-radius: 2px;
         }
-
         .button:hover{
             background: #66838C;
         }
-
         .display {
             background: #3b3b3b;
             color: #fff;
             outline: none;
             box-shadow: none; }
-
         table {
             padding: 5px;
-            background: #141414; }
+            background: #141414;
+        }
 
     </style>
     <script type="text/javascript">
@@ -282,27 +280,13 @@
 
         function solve() {
 
-            nested_list = handleBrackets(separateTokens(userInput));
-            console.log(nested_list);
+            let nested_list = handleBrackets(separateTokens(userInput));
+            let solved = solve_recursively(nested_list);
 
-            var solved = solve_recursive_helper(nested_list);
-            console.log(solved);
             return solved;
-
-
         }
 
-        function solve_recursive_helper(list){
-            for (item of list){
-                if (item instanceof Array){
-                    item = solve_recursive_helper(item);
-                }
-            }
-
-            return solve_flat(list);
-        }
-
-        function solve_flat(list){
+        function solve_recursively(list){
             let javascript_eval_statement = [];
             let pending_right_consume = false;
 
@@ -318,19 +302,22 @@
             }
 
             for (let item of list){
-                if(functionMap.hasOwnProperty(item)){
+                if (item instanceof Array){
+                    insert(solve_recursively(item))
+                }else if(functionMap.hasOwnProperty(item)){
                     let function_info = functionMap[item];
 
                     if (!(function_info.consumesLeft || function_info.consumesRight)){
                         insert(function_info.jsRepresentation)
                     } else if (function_info.consumesLeft && !(function_info.consumesRight)) {
-                        new_entry = function_info.jsRepresentation.replace('<left>', javascript_eval_statement.pop());
+                        let new_entry = function_info.jsRepresentation.replace('<left>', javascript_eval_statement.pop());
                         insert(new_entry);
                     } else if (function_info.consumesRight && !(function_info.consumesLeft)) {
+                        let new_entry = function_info.jsRepresentation;
                         insert(new_entry);
                         pending_right_consume = true;
                     } else if (function_info.consumesLeft && function_info.consumesRight) {
-                        new_entry = function_info.jsRepresentation.replace('<left>', javascript_eval_statement.pop());
+                        let new_entry = function_info.jsRepresentation.replace('<left>', javascript_eval_statement.pop());
                         insert(new_entry);
                         pending_right_consume = true;
                     }
