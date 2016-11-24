@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+    <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Javascript Calculator</title>
+    <style>
+        html {
+            font-family: sans-serif;
+        }
+        .container {
+            width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            border: 1px solid black;
+            border-radius: 1%;
+            background-color: white; /* this is the colour of your calculator's casing */
+        }
+        
+        .display {
+            width: 98%;
+            height: 40px;
+            font-size: 30px;
+            text-align: right;
+            margin-bottom: 15px;
+            padding-right: 5px;
+        }
+        
+        table {
+            width: 100%;
+            padding: 5px;
+        }
+        
+        table td {
+            width: 20%;
+            margin: 3px;
+            text-align: center;
+        }
+        
+        .button {
+            width: 100%;
+            height: 40px;
+            font-size: 20px;
+            color: #222;
+        }
+        
+        .equation_current {
+            color: black;
+            min-width: 50px;
+        }
+        
+        .equation_prev {
+            color: darkgray;
+        }
+    </style>
+    <script type="text/javascript">
+
+        let userInput = '';
+        let computedTotal = '';
+
+        function factorial(num){
+            if (num == 1){
+                return num
+            }
+            else{
+                return num * factorial(num - 1)
+            }
+        }
+
+        var functionMap = {
+
+            '+' : {
+                isFunction: false,
+                jsRepresentation: '+',
+                padded: true
+            },
+
+            '-' : {
+                isFunction: false,
+                jsRepresentation: '-',
+                padded: true
+            },
+
+            '*' : {
+                isFunction: false,
+                jsRepresentation: '*',
+                padded: true
+            },
+
+            '/' : {
+                isFunction: false,
+                jsRepresentation: '/',
+                padded: true
+            },
+
+            '^' : {
+                isFunction: true,
+                consumesLeft: true,
+                consumesRight: true,
+                jsRepresentation: "Math.pow(<left>, <right>)",
+                padded: false
+            },
+
+            '!' : {
+                isFunction: true,
+                consumesLeft: true,
+                consumesRight: false,
+                jsRepresentation: 'factorial(<left>)',
+                padded: false
+            },
+
+            'pi' : {
+                isFunction: false,
+                jsRepresentation: 'Math.PI',
+                padded: true
+            },
+
+            'sqrt' : {
+                isFunction: true,
+                consumesLeft: false,
+                consumesRight: true,
+                jsRepresentation: 'Math.sqrt(<right>)',
+                padded: false
+            },
+
+            'sin' : {
+                isFunction: true,
+                consumesLeft: false,
+                consumesRight: true,
+                jsRepresentation: 'Math.sin(<right>)',
+                padded: false
+            },
+
+            'cos' : {
+                isFunction: true,
+                consumesLeft: false,
+                consumesRight: true,
+                jsRepresentation: 'factorial(<right>)',
+            },
+
+            'tan' : {
+                isFunction: true,
+                consumesLeft: false,
+                consumesRight: true,
+                jsRepresentation: 'factorial(<right>)',
+                padded: false
+            },
+        };
+
+        var separateTokens = function(expression) {
+            //tokens = ['+', '-', '*', '/', '(', ')', 'sin', 'cos','tan', '!', 'sqrt', 'pi']
+            //This regex will validate against any of the above tokens, or any given real number
+            if (!(expression == null || expression == undefined)){
+                let regex = /\d*\.?\d+|(\+|\-|\*|\/|\(|\)|sin|cos|tan|sqrt|!|pi|\^)/g;
+                return expression.match(regex);
+            }
+        };
+
+       var handleBrackets = function(token_list){
+            //Given a flat list of numbers and tokens, return a new nested list w.r.t. brackets
+            /* Algorithm:
+             - Read the list from right to left, scanning for for the open-paren character
+             - Once found, find the index of the matching close-paren
+             - Extract the elements in between into a new list,
+             and replace all of the elements contained in the original list with the new list
+             - Keep reading right-to-left, reapeating this process until you reach the left side
+             - Return the new list
+             */
+
+
+            var last_closing_paren_index = -1;
+            while (token_list.includes('(')) {
+                //read right to left
+                for (i = token_list.length-1; i >= 0; i--){
+
+                    let current_char = token_list[i];
+
+                    if (current_char == ')'){
+                        last_closing_paren_index = i;
+                    }
+                    else if (current_char == '('){
+
+                        //Check that a corresponding closing bracket exists
+                        if (last_closing_paren_index == -1){
+                            throw "Error: unbalanced brackets in expression.";
+                        }
+
+                        //slice the items contained in bracketed section
+                        new_list = token_list.slice(i+1, last_closing_paren_index);
+
+                        //splice that into our new list
+                        difference = last_closing_paren_index - i;
+                        token_list.splice(i, difference + 1, new_list);
+                        console.log(token_list);
+                        break;
+                    }
+                }
+            }
+
+            return token_list
+
+        };
+
+
+
+       function backspace(){
+
+            let vals = separateTokens(userInput);
+
+            if(vals.slice(-1) in functionMap) {
+                vals.splice(-1);
+                userInput = '';
+
+                for (item of vals) {
+                    userInput += item
+                }
+
+            } else {
+                userInput = userInput.slice(0, userInput.length - 1);
+            }
+        }
+
+        function update() {
+            if (computedTotal == '') {
+                document.getElementById('equation_current').innerHTML = (userInput == '') ? '0' : format_display_string(userInput);
+            }
+            else {
+                document.getElementById('equation_current').innerHTML = computedTotal;
+            }
+        }
+
+        function format_display_string(string){
+            let arr_items = separateTokens(string);
+            let output_string = '';
+
+            for (item of arr_items){
+                if (item in functionMap){
+
+                    let reference_object = functionMap[item];
+                    output_string += (reference_object.padded) ? ' ' + item + ' ' : item;
+
+                } else{
+                    output_string += item
+                }
+            }
+
+            if (string.slice(-1) == '.'){
+                output_string += '.'
+            }
+
+            return output_string
+
+        }
+
+        function solve() {
+
+            nested_list = handleBrackets(separateTokens(userInput));
+            console.log(nested_list);
+
+            var solved = solve_recursive_helper(nested_list);
+            console.log(solved);
+            return solved;
+
+
+        }
+
+        function solve_recursive_helper(list){
+            for (item of list){
+                if (item instanceof Array){
+                    item = solve_recursive_helper(item);
+                }
+            }
+
+            return solve_flat(list);
+        }
+
+        function solve_flat(list){
+            let javascript_eval_statement = [];
+            let pending_right_consume = false;
+
+            function insert(value){
+                if(pending_right_consume){
+                    let consumer = javascript_eval_statement.pop();
+                    consumer = consumer.replace('<right>', value);
+                    javascript_eval_statement.push(consumer);
+                    pending_right_consume = false;
+                }else{
+                    javascript_eval_statement.push(value);
+                }
+            }
+
+            for (let item of list){
+                if(functionMap.hasOwnProperty(item)){
+                    let function_info = functionMap[item];
+
+                    if (!(function_info.consumesLeft || function_info.consumesRight)){
+                        insert(function_info.jsRepresentation)
+                    } else if (function_info.consumesLeft && !(function_info.consumesRight)) {
+                        new_entry = function_info.jsRepresentation.replace('<left>', javascript_eval_statement.pop());
+                        insert(new_entry);
+                    } else if (function_info.consumesRight && !(function_info.consumesLeft)) {
+                        insert(new_entry);
+                        pending_right_consume = true;
+                    } else if (function_info.consumesLeft && function_info.consumesRight) {
+                        new_entry = function_info.jsRepresentation.replace('<left>', javascript_eval_statement.pop());
+                        insert(new_entry);
+                        pending_right_consume = true;
+                    }
+
+                }else{
+                    insert(item)
+                }
+            }
+
+            let eval_string = '';
+
+            for(let item of javascript_eval_statement){
+                eval_string += item;
+            }
+
+            return eval(eval_string);
+
+        }
+
+
+        function handle_button(caller) {
+
+            if (!computedTotal == ''){
+                if (['plus', 'minus', 'divide', 'multiply', 'factorial', 'exp', 'exp2'].includes(caller)){
+                    userInput += computedTotal;
+                    computedTotal = '';
+                }
+                else{
+                    computedTotal = '';
+                }
+            }
+
+            switch(caller) {
+
+                case 'one':
+                    userInput += '1';
+                    break;
+                case 'two':
+                    userInput += '2';
+                    break;
+                case 'three':
+                    userInput += '3';
+                    break;
+                case 'four':
+                    userInput += '4';
+                    break;
+                case 'five':
+                    userInput += '5';
+                    break;
+                case 'six':
+                    userInput += '6';
+                    break;
+                case 'seven':
+                    userInput += '7';
+                    break;
+                case 'eight':
+                    userInput += '8';
+                    break;
+                case 'nine':
+                    userInput += '9';
+                    break;
+                case 'zero':
+                    userInput += '0';
+                    break;
+                case 'decimal':
+                    userInput += '.';
+                    break;
+                case 'backspace':
+                    backspace();
+                    break;
+                case 'pi':
+                    userInput += 'pi';
+                    break;
+                case 'plus':
+                    userInput += '+';
+                    break;
+                case 'minus':
+                    userInput += '-';
+                    break;
+                case 'divide':
+                    userInput += '/';
+                    break;
+                case 'multiply':
+                    userInput += '*';
+                    break;
+                case 'factorial':
+                    userInput += '!';
+                    break;
+                case 'exp':
+                    userInput += '^';
+                    break;
+                case 'exp2':
+                    userInput += '^2';
+                    break;
+                case 'sin':
+                    userInput += 'sin(';
+                    break;
+                case 'cos':
+                    userInput += 'cos(';
+                    break;
+                case 'tan':
+                    userInput += 'tan(';
+                    break;
+                case 'sqrt':
+                    userInput += 'sqrt(';
+                    break;
+                case 'openbracket':
+                    userInput += '(';
+                    break;
+                case 'closebracket':
+                    userInput += ')';
+                    break;
+                case 'clear':
+                    userInput = '';
+                    computedTotal = '';
+                    break;
+                case 'equals':
+                    computedTotal = solve();
+                    userInput = '';
+                    break;
+            }
+            update()
+        }
+
+    </script>
+<!-- BUTTON SECTION -->
+</head>
+<body>
+    <div class="container">
+        <table cellspacing="0">
+            <!-- THIS SECTION IS FOR STYLING YOUR CALCULATOR -->
+            <!-- YOU SHOULD REALLY ONLY NEED TO CHANGE THE 'value=""' PART OF THE CODE -->
+            <!-- FOR EXAMPLE 'value="sin"' FOR THE BUTTON AND FUNCTION THAT WILL BE USED FOR SIN -->
+            <tr>
+                <td colspan="4"><div id="display" class="display">
+                    <span class="equation_prev" id="equation_prev"></span><span class="equation_current" id="equation_current">0</span>
+                </div></td>
+            </tr>
+            <tr>
+                <!-- THE LINE BELOW IS AN EXAMPLE OF SETTING A BUTTON TO DISPLAY 'SIN' AND function func1 () above solves for sin -->
+                <td><input id="sin" class="button" type="button" value="sin" onclick="handle_button(this.id)"/></td>
+                
+                <td><input id="cos" class="button" type="button" value="cos" onclick="handle_button(this.id)"/></td>
+                <td><input id="tan" class="button" type="button" value="tan" onclick="handle_button(this.id)"/></td>
+                <td><input id="sqrt" class="button" type="button" value="√" onclick="handle_button(this.id)"/></td>
+            </tr>
+            <tr>
+                <td><input id="exp2" class="button" type="button" value="x²" onclick="handle_button(this.id)"/></td>
+                <td><input id="pi" class="button" type="button" value="π" onclick="handle_button(this.id)"/></td>
+                <td><input id="factorial" class="button" type="button" value="n!" onclick="handle_button(this.id)"/></td>
+                <td><input id="exp" class="button" type="button" value="^" onclick="handle_button(this.id)"/></td>
+                
+            </tr>
+            <tr>
+                <td><input id="backspace" class="button" type="button" value="←" onclick="handle_button(this.id)"/></td>
+                <td><input id="openbracket" class="button" type="button" value="(" onclick="handle_button(this.id)"/></td>
+                <td><input id="closebracket" class="button" type="button" value=")" onclick="handle_button(this.id)"/></td>
+                <td><input id="divide" class="button" type="button" value="/" onclick="handle_button(this.id)"/></td>
+            </tr>
+            <tr>
+                <td><input id="one" class="button" type="button" value="1" onclick="handle_button(this.id)"/></td>
+                <td><input id="two" class="button" type="button" value="2" onclick="handle_button(this.id)"/></td>
+                <td><input id="three" class="button" type="button" value="3" onclick="handle_button(this.id)"/></td>
+                <td><input id="multiply" class="button" type="button" value="*" onclick="handle_button(this.id)"/></td>
+            </tr>
+            <tr>
+                <td><input id="four" class="button" type="button" value="4" onclick="handle_button(this.id)"/></td>
+                <td><input id="five" class="button" type="button" value="5" onclick="handle_button(this.id)"/></td>
+                <td><input id="six" class="button" type="button" value="6" onclick="handle_button(this.id)"/></td>
+                <td><input id="minus" class="button" type="button" value="-" onclick="handle_button(this.id)"/></td>
+            </tr>
+            <tr>
+                <td><input id="seven" class="button" type="button" value="7" onclick="handle_button(this.id)"/></td>
+                <td><input id="eight" class="button" type="button" value="8" onclick="handle_button(this.id)"/></td>
+                <td><input id="nine" class="button" type="button" value="9" onclick="handle_button(this.id)"/></td>
+                <td><input id="plus" class="button" type="button" value="+" onclick="handle_button(this.id)"/></td>
+            </tr>
+            <tr>
+                <td><input id="decimal" class="button" type="button" value="." onclick="handle_button(this.id)"/></td>
+                <td> <input id="zero" class="button" type="button" value="0" onclick="handle_button(this.id)"/></td>
+                <td> <input id="clear" class="button" type="button" value="C" onclick="handle_button(this.id)"/></td>
+                <td><input id="equals" class="button" type="button" value="=" onclick="handle_button(this.id)"/></td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>
