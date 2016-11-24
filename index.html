@@ -43,13 +43,39 @@
         }
         
         .equation_current {
-            color: black;
+            color: #fff;
             min-width: 50px;
         }
         
         .equation_prev {
             color: darkgray;
         }
+        /* additional styles */
+        .button {
+            box-shadow: none;
+            outline: none;
+            padding: 10px 20px;
+            color: #fff;
+            background: #3b3b3b;
+            margin: 2px;
+            border: none;
+
+        }
+
+        .button:hover{
+            background: #66838C;
+        }
+
+        .display {
+            background: #3b3b3b;
+            color: #fff;
+            outline: none;
+            box-shadow: none; }
+
+        table {
+            padding: 5px;
+            background: #141414; }
+
     </style>
     <script type="text/javascript">
 
@@ -143,6 +169,9 @@
                 jsRepresentation: 'factorial(<right>)',
                 padded: false
             },
+
+
+
         };
 
         var separateTokens = function(expression) {
@@ -436,7 +465,7 @@
             <!-- FOR EXAMPLE 'value="sin"' FOR THE BUTTON AND FUNCTION THAT WILL BE USED FOR SIN -->
             <tr>
                 <td colspan="4"><div id="display" class="display">
-                    <span class="equation_prev" id="equation_prev"></span><span class="equation_current" id="equation_current">0</span>
+                    <span class="equation_current" id="equation_current">0</span>
                 </div></td>
             </tr>
             <tr>
@@ -485,6 +514,8 @@
                 <td><input id="equals" class="button" type="button" value="=" onclick="handle_button(this.id)"/></td>
             </tr>
         </table>
+        <p>Note: this project uses ECMAScript 2016 (ES7) language features, it's been tested to work on Chrome 54 and
+            Firefox 50, but older browsers may have issues with some of the special functions.</p>
     </div>
 </body>
 </html>
