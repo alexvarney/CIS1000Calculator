@@ -1,4 +1,4 @@
-# PureJSCalculator
+# Pure JS Calculator
 An implementation of a calculator using pure HTML/CSS/JS.
 
 [See it in action!](https://alexvarney.github.io/PureJSCalculator/)
